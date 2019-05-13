@@ -26,6 +26,12 @@ elif [ "$1" == "ospi_direct" ]; then
 	apt-get install -y wiringpi
 	echo "Compiling firmware..."
 	g++ -o OpenSprinkler -DOSPI -DDIRECT_IO main.cpp OpenSprinkler.cpp program.cpp opensprinkler_server.cpp utils.cpp weather.cpp gpio.cpp etherport.cpp mqtt.cpp -lpthread -lmosquitto
+elif [ "$1" == "greeniq" ]; then
+	echo "Installing required libraries..."
+	apt-get install -y libmosquitto-dev
+	apt-get install -y wiringpi
+	echo "Compiling firmware..."
+	g++ -o OpenSprinkler -DOSPI -DDIRECT_IO -DDIRECT_POSITIVE main.cpp OpenSprinkler.cpp program.cpp opensprinkler_server.cpp utils.cpp weather.cpp gpio.cpp etherport.cpp mqtt.cpp -lpthread -lmosquitto
 else
 	echo "Installing required libraries..."
 	apt-get install -y libmosquitto-dev

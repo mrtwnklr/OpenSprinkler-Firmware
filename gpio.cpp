@@ -457,6 +457,14 @@ void attachInterrupt(int pin, const char* mode, void (*isr)(void)) {
 
 #include "defines.h"
 
+#ifdef DIRECT_POSITIVE
+#define PIN_STATE_ON  HIGH
+#define PIN_STATE_OFF LOW
+#else
+#define PIN_STATE_ON  LOW
+#define PIN_STATE_OFF HIGH
+#endif
+
 #define NUM_DIRECT_IO 17
 // logical to physical pin number mappings - same as WiringPi
 byte pi_r1_direct_io[NUM_DIRECT_IO] = {
@@ -520,9 +528,9 @@ void digitalWrite(int pin, byte value) {
 		} else {
 			DEBUG_PRINTLN("PIN_SR_LATCH set high, writing station states to GPIO");
 			for (int i = 0; i < NUM_DIRECT_IO; ++i) {
-				int state = 0;
+				int state = PIN_STATE_ON;
 				if (station_state[i] == 0) {
-					state = 1;
+					state = PIN_STATE_OFF;
 				}
 				_digitalWrite(pin_direct_io[i], state);
 			}
