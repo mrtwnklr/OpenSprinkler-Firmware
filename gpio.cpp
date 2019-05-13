@@ -562,8 +562,13 @@ void digitalWrite(int pin, byte value) {
 
 byte digitalRead(int pin) {
 	DEBUG_PRINT("digitalRead: pin = ");
-	DEBUG_PRINTLN(pin);
-	return 0;
+	DEBUG_PRINT(pin);
+
+	byte value = _digitalRead(pin);
+	DEBUG_PRINT(", value = ");
+	DEBUG_PRINTLN(value);
+
+	return value;
 }
 
 #else
