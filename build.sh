@@ -1,7 +1,11 @@
 #!/bin/bash
 
-while getopts ":s" opt; do
+while getopts ":as" opt; do
   case $opt in
+    a)
+	  AUTOSTART=true
+	  command shift
+      ;;
     s)
 	  SILENT=true
 	  command shift
@@ -42,11 +46,13 @@ fi
 
 if [ ! "$SILENT" = true ] && [ -f OpenSprinkler.launch ] && [ ! -f /etc/init.d/OpenSprinkler.sh ]; then
 
-	read -p "Do you want to start OpenSprinkler on startup? " -n 1 -r
-	echo
+	if [ ! "$AUTOSTART" = true ]; then
+		read -p "Do you want to start OpenSprinkler on startup? " -n 1 -r
+		echo
 
-	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-		exit 0
+		if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+			exit 0
+		fi
 	fi
 
 	echo "Adding OpenSprinkler launch script..."
