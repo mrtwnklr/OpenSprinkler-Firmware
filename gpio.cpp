@@ -263,7 +263,7 @@ static byte GPIOSetEdge(int pin, const char *edge) {
 }
 
 /** Set pin mode, in or out */
-void pinMode(int pin, byte mode) {
+void _pinMode(int pin, byte mode) {
 	static const char dir_str[]  = "in\0out";
 
 	char path[BUFFER_MAX];
@@ -318,7 +318,7 @@ void gpio_fd_close(int fd) {
 }
 
 /** Read digital value */
-byte digitalRead(int pin) {
+byte _digitalRead(int pin) {
 	char value_str[3];
 
 	int fd = gpio_fd_open(pin, O_RDONLY);
@@ -345,7 +345,12 @@ void gpio_write(int fd, byte value) {
 }
 
 /** Write digital value */
-void digitalWrite(int pin, byte value) {
+void _digitalWrite(int pin, byte value) {
+	DEBUG_PRINT("_digitalWrite: pin = ");
+	DEBUG_PRINT(pin);
+	DEBUG_PRINT(", value = ");
+	DEBUG_PRINTLN(value)
+
 	int fd = gpio_fd_open(pin);
 	if (fd < 0) {
 		return;
@@ -447,6 +452,126 @@ void attachInterrupt(int pin, const char* mode, void (*isr)(void)) {
 			delay(1) ;
 	pthread_mutex_unlock (&pinMutex) ;
 }
+
+#ifdef DIRECT_IO
+
+#include "defines.h"
+
+#define NUM_DIRECT_IO 17
+// logical to physical pin number mappings - same as WiringPi
+byte pi_r1_direct_io[NUM_DIRECT_IO] = {
+	17, 18, 21, 22, 23, 24, 25, 4, 0, 1, 8, 7, 10, 9, 11, 14, 15
+};
+byte pi_r2_direct_io[NUM_DIRECT_IO] = {
+	17, 18, 27, 22, 23, 24, 25, 4, 2, 3, 8, 7, 10, 9, 11, 14, 15
+};
+byte* pin_direct_io = pi_r2_direct_io;
+int initialized = 0;
+int pin_sr_latch = -1;
+int pin_sr_clock = -1;
+int pin_sr_oe = -1;
+int pin_sr_data = -1;
+int station_num = MAX_NUM_STATIONS - 1;
+byte station_state[MAX_NUM_STATIONS];
+
+void pinMode(int pin, byte mode) {
+	DEBUG_PRINTLN("Initializing in pin mode");
+	if (!initialized) {
+		for (int i = 0; i < NUM_DIRECT_IO; ++i) {
+			_pinMode(pin_direct_io[i], OUTPUT);
+		}
+	}
+	DEBUG_PRINTLN("Done initializing in pin mode");
+	initialized = 1;
+}
+
+// PIN_SR_LATCH -> LOW
+// For each pin:
+//    PIN_SR_CLOCK -> LOW
+//    PIN_SR_DATA -> 0/1
+//    PIN_SR_CLOCK -> HIGH
+// PIN_SR_LATCH -> HIGH
+
+void digitalWrite(int pin, byte value) {
+
+	switch (pin) {
+		case PIN_SR_DATA:
+		pin_sr_data = value;
+		DEBUG_PRINT("PIN_SR_DATA: value = ");
+		DEBUG_PRINTLN(value)
+		break;
+		case PIN_SR_DATA_ALT:
+		pin_sr_data = value;
+		DEBUG_PRINT("PIN_SR_DATA_ALT: value = ");
+		DEBUG_PRINTLN(value)
+		break;
+		case PIN_SR_OE:
+		pin_sr_oe = value;
+		DEBUG_PRINT("PIN_SR_OE: value = ");
+		DEBUG_PRINTLN(value)
+		break;
+		case PIN_SR_LATCH:
+		DEBUG_PRINT("PIN_SR_LATCH: value = ");
+		DEBUG_PRINTLN(value)
+		pin_sr_latch = value;
+		if (pin_sr_latch == 0) {
+			DEBUG_PRINTLN("PIN_SR_LATCH set low, resetting station_num");
+			station_num = MAX_NUM_STATIONS - 1;
+		} else {
+			DEBUG_PRINTLN("PIN_SR_LATCH set high, writing station states to GPIO");
+			for (int i = 0; i < NUM_DIRECT_IO; ++i) {
+				int state = 0;
+				if (station_state[i] == 0) {
+					state = 1;
+				}
+				_digitalWrite(pin_direct_io[i], state);
+			}
+		}
+		break;
+		case PIN_SR_CLOCK:
+		DEBUG_PRINT("PIN_SR_CLOCK: value = ");
+		DEBUG_PRINTLN(value)
+		pin_sr_clock = value;
+		if (pin_sr_clock > 0) {
+			if (pin_sr_latch == 0 && pin_sr_oe == 0) {
+				DEBUG_PRINT("PIN_SR_CLOCK set high, setting station ");
+				DEBUG_PRINT(station_num);
+				DEBUG_PRINT(" to state ");
+				DEBUG_PRINTLN(pin_sr_data);
+				station_state[station_num] = pin_sr_data;
+				--station_num;
+			}
+		}
+		break;
+		default:
+		DEBUG_PRINT("digitalWrite pin not recognized: pin = ");
+		DEBUG_PRINT(pin);
+		DEBUG_PRINT(", value = ");
+		DEBUG_PRINTLN(value)
+		break;
+	}
+}
+
+byte digitalRead(int pin) {
+	DEBUG_PRINT("digitalRead: pin = ");
+	DEBUG_PRINTLN(pin);
+	return 0;
+}
+
+#else
+
+void pinMode(int pin, byte mode) {
+	_pinMode(pin, mode);
+}
+void digitalWrite(int pin, byte value) {
+	_digitalWrite(pin, value);
+}
+byte digitalRead(int pin) {
+	return _digitalRead(pin);
+}
+
+#endif
+
 #else
 
 void pinMode(int pin, byte mode) {}

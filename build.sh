@@ -20,6 +20,12 @@ elif [ "$1" == "osbo" ]; then
 	apt-get install -y libmosquitto-dev
 	echo "Compiling firmware..."
 	g++ -o OpenSprinkler -DOSBO main.cpp OpenSprinkler.cpp program.cpp opensprinkler_server.cpp utils.cpp weather.cpp gpio.cpp etherport.cpp mqtt.cpp -lpthread -lmosquitto
+elif [ "$1" == "ospi_direct" ]; then
+	echo "Installing required libraries..."
+	apt-get install -y libmosquitto-dev
+	apt-get install -y wiringpi
+	echo "Compiling firmware..."
+	g++ -o OpenSprinkler -DOSPI -DDIRECT_IO main.cpp OpenSprinkler.cpp program.cpp opensprinkler_server.cpp utils.cpp weather.cpp gpio.cpp etherport.cpp mqtt.cpp -lpthread -lmosquitto
 else
 	echo "Installing required libraries..."
 	apt-get install -y libmosquitto-dev
